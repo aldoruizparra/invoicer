@@ -1,0 +1,22 @@
+# Generated invoices and private reference files
+invoices/
+sample_invoice.pdf
+*.pdf
+!docs/demo_invoice.pdf
+
+# Local data / secrets (real data lives in ~/.invoicer/, but never commit copies)
+data.json
+.invoicer/
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
