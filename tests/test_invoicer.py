@@ -102,6 +102,30 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(store.find_item(data, "extra")["price"], "75.00")
         self.assertEqual(len(data["contacts"]), 1)
 
+    def test_edit_contact_from_bill_to(self):
+        with self.script(*self.new_invoice_answers("Confirm & generate PDF")):
+            flow.run_new(self.data)
+        data = store.load()
+        # Edit the saved contact's company, then pick it from the refreshed list.
+        with self.script(flow.EDIT_CONTACT, 0, "John Smith", "", "Acme Inc", "1 Main St",
+                         "Dallas, TX", 0):
+            contact = flow.ask_bill_to(data)
+        self.assertEqual(contact["company"], "Acme Inc")
+        data = store.load()
+        self.assertEqual(len(data["contacts"]), 1)
+        self.assertEqual(data["contacts"][0]["company"], "Acme Inc")
+        self.assertEqual(data["last_invoice"]["bill_to"]["company"], "Acme Inc")
+
+    def test_remove_contact_from_bill_to(self):
+        self.data["contacts"] = [{"attention": "A", "company": "One"},
+                                 {"attention": "B", "company": "Two"}]
+        # Remove "One", decline removing another, then pick the remaining contact.
+        with self.script(flow.REMOVE_CONTACT, 0, True,
+                         flow.REMOVE_CONTACT, 0, False, 0):
+            contact = flow.ask_bill_to(self.data)
+        self.assertEqual(contact["company"], "Two")
+        self.assertEqual([c["company"] for c in store.load()["contacts"]], ["Two"])
+
     def test_validators(self):
         check_date = flow._validator(flow.parse_date)
         self.assertIs(check_date("02/29/2028"), True)

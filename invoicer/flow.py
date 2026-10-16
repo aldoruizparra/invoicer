@@ -117,34 +117,89 @@ def _contact_label(c):
     return " - ".join(p for p in parts if p) or "(blank)"
 
 
-def new_contact():
-    print("New bill-to contact:")
+def new_contact(existing=None):
+    """Prompt for a contact. With existing, each field defaults to its current value."""
+    old = existing or {}
+    print("Edit contact (Enter keeps a value):" if existing else "New bill-to contact:")
     contact = {
-        "attention": text("  Attention (name):", required=True),
-        "attention2": text("  Second contact (optional):"),
-        "company": text("  Company:"),
-        "street": text("  Street address:"),
-        "city_state": text("  City, State:"),
+        "attention": text("  Attention (name):", old.get("attention"), required=True),
+        "attention2": text("  Second contact (optional):", old.get("attention2")),
+        "company": text("  Company:", old.get("company")),
+        "street": text("  Street address:", old.get("street")),
+        "city_state": text("  City, State:", old.get("city_state")),
     }
     return contact
 
 
-def ask_bill_to(data, current=None):
+EDIT_CONTACT = "Edit a saved contact"
+REMOVE_CONTACT = "Remove a saved contact"
+
+
+def _pick_saved_contact(data, message):
     choices = [questionary.Choice(_contact_label(c), value=i)
                for i, c in enumerate(data["contacts"])]
-    choices.append(questionary.Choice(ADD_NEW, value=ADD_NEW))
-    default = None
-    if current is not None:
-        key = store.contact_key(current)
-        default = next((ch for ch in choices if ch.value != ADD_NEW
-                        and store.contact_key(data["contacts"][ch.value]) == key), None)
-    pick = _ask(questionary.select("Bill to:", choices=choices, default=default))
-    if pick == ADD_NEW:
-        contact = new_contact()
-        store.push_front(data["contacts"], contact, store.contact_key)
+    choices.append(questionary.Choice("Back", value=None))
+    return _ask(questionary.select(message, choices=choices))
+
+
+def edit_contact(data):
+    """Edit a saved contact in place. Returns the updated contact, or None if backed out."""
+    index = _pick_saved_contact(data, "Edit which contact?")
+    if index is None:
+        return None
+    old = data["contacts"][index]
+    updated = new_contact(old)
+    data["contacts"][index] = updated
+    # Keep `repeat` in sync if the last invoice billed this contact.
+    last = data.get("last_invoice")
+    if last and store.contact_key(last["bill_to"]) == store.contact_key(old):
+        last["bill_to"] = copy.deepcopy(updated)
+    # Drop any other entry the edit made identical to this one.
+    key = store.contact_key(updated)
+    data["contacts"] = [c for i, c in enumerate(data["contacts"])
+                        if i == index or store.contact_key(c) != key]
+    store.save(data)
+    print("  Contact updated.")
+    return updated
+
+
+def remove_contact(data):
+    index = _pick_saved_contact(data, "Remove which contact?")
+    if index is None:
+        return
+    contact = data["contacts"][index]
+    if _ask(questionary.confirm(f"Remove '{_contact_label(contact)}'?", default=False)):
+        data["contacts"].pop(index)
         store.save(data)
-        return contact
-    return copy.deepcopy(data["contacts"][pick])
+        print("  Contact removed.")
+
+
+def ask_bill_to(data, current=None):
+    """Pick a saved contact, add a new one, or edit/remove saved ones and pick again."""
+    while True:
+        choices = [questionary.Choice(_contact_label(c), value=i)
+                   for i, c in enumerate(data["contacts"])]
+        choices.append(questionary.Choice(ADD_NEW, value=ADD_NEW))
+        if data["contacts"]:
+            choices += [questionary.Choice(EDIT_CONTACT, value=EDIT_CONTACT),
+                        questionary.Choice(REMOVE_CONTACT, value=REMOVE_CONTACT)]
+        default = None
+        if current is not None:
+            key = store.contact_key(current)
+            default = next((ch for ch in choices if isinstance(ch.value, int)
+                            and store.contact_key(data["contacts"][ch.value]) == key), None)
+        pick = _ask(questionary.select("Bill to:", choices=choices, default=default))
+        if pick == ADD_NEW:
+            contact = new_contact()
+            store.push_front(data["contacts"], contact, store.contact_key)
+            store.save(data)
+            return contact
+        if pick == EDIT_CONTACT:
+            current = edit_contact(data) or current
+        elif pick == REMOVE_CONTACT:
+            remove_contact(data)
+        else:
+            return copy.deepcopy(data["contacts"][pick])
 
 
 def _address_label(address):

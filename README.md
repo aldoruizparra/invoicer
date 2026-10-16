@@ -53,6 +53,8 @@ new number and today's date. Use **Edit a field** to change only what differs.
 
 - Saved lists show the most recently used entries first.
 - New contacts and job addresses are saved as soon as you add them.
+- In the "Bill to" list, choose "Edit a saved contact" or "Remove a saved contact"
+  to fix or delete one without leaving the invoice.
 - On macOS the PDF uses the system Helvetica Neue font (nothing is bundled);
   elsewhere it falls back to standard Helvetica.
 - Set `INVOICER_HOME=/some/dir` to use a different data folder (useful for testing).
