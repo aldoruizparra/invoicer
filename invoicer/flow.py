@@ -1,6 +1,7 @@
 """Interactive terminal flows: setup, new, repeat, list."""
 
 import copy
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -53,6 +54,18 @@ def parse_date(value):
         return datetime.strptime(value.strip(), DATE_FMT).date()
     except ValueError:
         raise ValueError("Use MM/DD/YYYY, e.g. 10/16/2026")
+
+
+def parse_zip(value):
+    value = value.strip()
+    if value and not re.fullmatch(r"\d{5}(-\d{4})?", value):
+        raise ValueError("ZIP must be 5 digits (or ZIP+4, e.g. 78701-1234), or leave blank")
+    return value
+
+
+def ask_zip(message, default=""):
+    return parse_zip(_ask(questionary.text(message, default=default or "",
+                                           validate=_validator(parse_zip))))
 
 
 def parse_number(value):
@@ -127,6 +140,7 @@ def new_contact(existing=None):
         "company": text("  Company:", old.get("company")),
         "street": text("  Street address:", old.get("street")),
         "city_state": text("  City, State:", old.get("city_state")),
+        "zip": ask_zip("  ZIP (optional):", old.get("zip")),
     }
     return contact
 
@@ -215,7 +229,8 @@ def ask_job_address(data, current=None):
     if pick == ADD_NEW:
         street = text("  Job street address:", required=True)
         city = text("  Job city, state (optional):")
-        pick = "\n".join(p for p in (street, city) if p)
+        zip_code = ask_zip("  Job ZIP (optional):")
+        pick = "\n".join(p for p in (street, store.city_line(city, zip_code)) if p)
         store.push_front(data["job_addresses"], pick, store.address_key)
         store.save(data)
     return pick
@@ -300,9 +315,8 @@ def print_summary(inv):
     print(f" INVOICE #{inv['number']}    Date: {inv['date']}")
     print("-" * width)
     print(f" Bill to: Attention: {c.get('attention', '')}")
-    for key in ("attention2", "company", "street", "city_state"):
-        if c.get(key):
-            print(f"          {c[key]}")
+    for line in store.contact_lines(c):
+        print(f"          {line}")
     print(f" For:     {_address_label(inv['job_address'])}")
     print("-" * width)
     price_w = 14

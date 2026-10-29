@@ -16,6 +16,7 @@ from pathlib import Path
 from fpdf import FPDF
 
 from .money import compute_totals, fmt_money, fmt_rate
+from .store import contact_lines
 
 # fontTools warns about Apple-only tables it drops while subsetting; harmless.
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
@@ -198,10 +199,9 @@ def _right_column(pdf, invoice):
     w = pdf.put(COL_X, y, "Attention")
     pdf.face("light")
     pdf.put(COL_X + w, y, f": {contact.get('attention', '')}")
-    for key in ("attention2", "company", "street", "city_state"):
-        if contact.get(key):
-            y += LINE
-            pdf.put(COL_X, y, contact[key])
+    for line in contact_lines(contact):
+        y += LINE
+        pdf.put(COL_X, y, line)
 
     y = _labeled(pdf, y + 2 * LINE, "Date:", f" {invoice['date']}")
     return _labeled(pdf, y + 2 * LINE, "For: ", invoice["job_address"])

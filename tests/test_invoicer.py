@@ -63,8 +63,8 @@ class FlowTests(unittest.TestCase):
 
     def new_invoice_answers(self, final_action):
         return ["1", "10/16/2026",
-                flow.ADD_NEW, "John Smith", "", "Acme LLC", "1 Main St", "Dallas, TX",
-                flow.ADD_NEW, "456 Oak Ave", "Plano, TX",
+                flow.ADD_NEW, "John Smith", "", "Acme LLC", "1 Main St", "Dallas, TX", "75201",
+                flow.ADD_NEW, "456 Oak Ave", "Plano, TX", "",
                 "Deep clean", "250", "Extra", "1,000.50", "",
                 "8.25", final_action]
 
@@ -76,6 +76,7 @@ class FlowTests(unittest.TestCase):
         data = store.load()
         self.assertEqual(data["last_invoice_number"], 1)
         self.assertEqual(data["contacts"][0]["company"], "Acme LLC")
+        self.assertEqual(data["contacts"][0]["zip"], "75201")
         self.assertEqual(data["job_addresses"], ["456 Oak Ave\nPlano, TX"])
         self.assertEqual([i["description"] for i in data["items"]], ["Deep clean", "Extra"])
         self.assertEqual(data["items"][1]["price"], "1000.50")
@@ -108,7 +109,7 @@ class FlowTests(unittest.TestCase):
         data = store.load()
         # Edit the saved contact's company, then pick it from the refreshed list.
         with self.script(flow.EDIT_CONTACT, 0, "John Smith", "", "Acme Inc", "1 Main St",
-                         "Dallas, TX", 0):
+                         "Dallas, TX", "75201", 0):
             contact = flow.ask_bill_to(data)
         self.assertEqual(contact["company"], "Acme Inc")
         data = store.load()
@@ -133,6 +134,17 @@ class FlowTests(unittest.TestCase):
         self.assertIsInstance(check_date("2026-10-16"), str)
         self.assertIsInstance(flow._validator(parse_money)("12.x"), str)
         self.assertIsInstance(flow._validator(flow.parse_number)("0"), str)
+        check_zip = flow._validator(flow.parse_zip)
+        for good in ("", "78701", "78701-1234"):
+            self.assertIs(check_zip(good), True)
+        for bad in ("7870", "787011", "abcde", "78701-12"):
+            self.assertIsInstance(check_zip(bad), str)
+
+    def test_zip_on_city_line(self):
+        contact = {"attention": "A", "company": "Co", "city_state": "Austin, TX", "zip": "78701"}
+        self.assertEqual(store.contact_lines(contact), ["Co", "Austin, TX 78701"])
+        self.assertEqual(store.contact_lines({"attention": "A", "street": "1 St"}), ["1 St"])
+        self.assertEqual(store.city_line("Plano, TX", "75024"), "Plano, TX 75024")
 
 
 if __name__ == "__main__":

@@ -28,8 +28,9 @@ DEMO_INVOICE = {
         "company": "Example Property Management LLC",
         "street": "456 Demo Avenue, Suite 200",
         "city_state": "Springfield, TX",
+        "zip": "75000",
     },
-    "job_address": "789 Fictional Lane, Unit 4B\nSpringfield, TX",
+    "job_address": "789 Fictional Lane, Unit 4B\nSpringfield, TX 75001",
     "items": [
         {"description": "Deep clean", "price": "250.00"},
         {"description": "Carpet shampoo - 3 rooms", "price": "180.00"},

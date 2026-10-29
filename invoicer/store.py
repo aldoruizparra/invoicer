@@ -26,7 +26,7 @@ DEFAULT_DATA = {
     "last_invoice": None,
 }
 
-CONTACT_FIELDS = ("attention", "attention2", "company", "street", "city_state")
+CONTACT_FIELDS = ("attention", "attention2", "company", "street", "city_state", "zip")
 
 
 def data_dir():
@@ -80,6 +80,18 @@ def item_key(item):
 
 def address_key(address):
     return _norm(address)
+
+
+def city_line(city_state, zip_code):
+    """'Austin, TX' + '78701' -> 'Austin, TX 78701'; either part may be blank."""
+    return " ".join(p for p in ((city_state or "").strip(), (zip_code or "").strip()) if p)
+
+
+def contact_lines(contact):
+    """Bill-to lines after 'Attention', blank fields skipped."""
+    lines = [contact.get(k) for k in ("attention2", "company", "street")]
+    lines.append(city_line(contact.get("city_state"), contact.get("zip")))
+    return [line for line in lines if line]
 
 
 def push_front(entries, entry, key):
