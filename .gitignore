@@ -4,6 +4,10 @@ sample_invoice.pdf
 *.pdf
 !docs/demo_invoice.pdf
 
+# Work-log emails and client spreadsheets contain real names and addresses
+*.eml
+*.xlsx
+
 # Local data / secrets (real data lives in ~/.invoicer/, but never commit copies)
 data.json
 .invoicer/

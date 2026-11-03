@@ -24,6 +24,16 @@ DEFAULT_DATA = {
     "job_addresses": [],
     "items": [],
     "last_invoice": None,
+    "weekly": {
+        "contractor": {
+            "name": "",
+            "street": "",
+            "address2": "",
+            "city_state_zip": "",
+            "email": "",
+            "phone": "",
+        },
+    },
 }
 
 CONTACT_FIELDS = ("attention", "attention2", "company", "street", "city_state", "zip")
@@ -46,6 +56,10 @@ def load():
             stored = json.load(f)
         data.update(stored)
         data["sender"] = {**DEFAULT_DATA["sender"], **stored.get("sender", {})}
+        weekly = stored.get("weekly", {})
+        data["weekly"] = {**copy.deepcopy(DEFAULT_DATA["weekly"]), **weekly}
+        data["weekly"]["contractor"] = {**DEFAULT_DATA["weekly"]["contractor"],
+                                        **weekly.get("contractor", {})}
     else:
         save(data)
     return data

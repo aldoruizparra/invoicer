@@ -62,6 +62,31 @@ new number and today's date. Use **Edit a field** to change only what differs.
 - `python invoice.py demo` also writes `docs/demo_invoice.png` when
   `pymupdf` is installed (`pip install pymupdf`); it is not otherwise required.
 
+## Weekly contractor invoices (from a work-log email)
+
+Turns a weekly work-log email into the client's own `.xlsx` invoice template,
+with an optional PDF.
+
+```bash
+python invoice.py from-email ~/Downloads/Invoice.eml
+python invoice.py setup-weekly    # edit contractor info or replace the template
+```
+
+1. Save the email from your mail app as an `.eml` file (in Mail: File > Save As,
+   format "Raw Message Source"; in Gmail: ⋮ > Download message).
+2. The first run asks for the contractor info and the path to the blank `.xlsx`
+   template, and keeps a private copy of it in `~/.invoicer/`.
+3. Each job line such as `10/07- Client Name 123 Street $65` becomes a row
+   (Client, Address, Date, Amount). Several jobs on one line are fine.
+   Columns the email doesn't have are left blank.
+4. Jobs with no amount are listed so you can enter one or leave it blank, and
+   the total is checked against the email's `Total:` line.
+5. The filled spreadsheet is saved to `invoices/Weekly_Invoice_<start>_to_<end>.xlsx`;
+   answer yes to also save a one-page PDF next to it.
+
+The template and emails contain real names and addresses, so `*.xlsx` and
+`*.eml` are git-ignored.
+
 ## Money handling
 
 All amounts use Python's `Decimal`. Tax is rounded to cents with
